@@ -64,9 +64,9 @@ namespace SirGerbain_PDMRobbery
             {
                 await BaseScript.Delay(1000);
                 float distance = Game.PlayerPed.Position.DistanceToSquared(robberyLocation);
-                if (distance > 120f)
+                if (distance < 200f)
                 {
-                    robber.Task.FleeFrom(closest);
+                    robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988); ;//786988
 
                     arrivalOnScene = true;
                     break;
@@ -83,12 +83,13 @@ namespace SirGerbain_PDMRobbery
             robbedVehicle.Mods.LicensePlate = "MTHRBTCH";
             robbedVehicle.AttachBlip();
             robbedVehicle.EnginePowerMultiplier = 2;
-            robbedVehicle.EngineTorqueMultiplier = 2;
 
             robber = await SpawnPed(robberList[random.Next(0, robberList.Count)], robberyLocation);
             robber.AlwaysKeepTask = true;
             robber.BlockPermanentEvents = true;
             robber.Weapons.Give(WeaponHash.Pistol, 250, true, true);
+
+            robber.SetIntoVehicle(robbedVehicle, VehicleSeat.Driver);
 
             PedData data = new PedData();
             List<Item> items = new List<Item>();
