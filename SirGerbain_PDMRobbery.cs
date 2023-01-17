@@ -4,12 +4,7 @@ using System.Collections.Generic;
 using CitizenFX.Core;
 using CitizenFX.Core.Native;
 using FivePD.API;
-using System.Security.Claims;
-using System.Xml.Linq;
-using System.Security.Cryptography.X509Certificates;
 using FivePD.API.Utils;
-using System.Data.SqlTypes;
-using System.Security.AccessControl;
 
 namespace SirGerbain_PDMRobbery
 {
