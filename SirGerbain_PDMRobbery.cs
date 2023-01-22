@@ -18,15 +18,15 @@ namespace SirGerbain_PDMRobbery
         Vector3 robberyLocation;
         Random random = new Random();
         Vehicle robbedVehicle;
-        bool arrivalOnScene = false;
-        bool chaseStarted = false;
+        private float tickTimer = 0f;
+        private float tickInterval = 1f;
         bool air1Dispatched = false;
         bool air1HasSwat = false;
 
         public SirGerbain_PDMRobbery()
         {
 
-            robberyLocation = new Vector3(-32.04f,-1092.35f,25.85f); //339.7
+            robberyLocation = new Vector3(-29.21f,-1086.15f,26.12f); //339.7
 
             robberList.Add(PedHash.SalvaGoon01GMY);
             robberList.Add(PedHash.SalvaGoon02GMY);
@@ -47,67 +47,43 @@ namespace SirGerbain_PDMRobbery
             InitBlip();
             UpdateData();
 
+            setupCallout();
+
             PlayerData playerData = Utilities.GetPlayerData();
             string displayName = playerData.DisplayName;
-            Notify("~r~[PDM Robbery] ~y~Officer ~b~" + displayName + ",~y~ someone is tampering with a vehicle at PDM!");
+            Notify("~r~[PDM 911] ~y~Officer ~b~" + displayName + ",~y~ someone is tampering with a vehicle at PDM!");
 
         }
 
-        public async override void OnStart(Ped closest)
+        public async Task OnTick()
         {
-            setupCallout();
-            base.OnStart(closest);
-
-            while (!arrivalOnScene)
+            tickTimer += Game.LastFrameTime;
+            if (tickTimer >= tickInterval)
             {
-                await BaseScript.Delay(500);
-                float distance = Game.PlayerPed.Position.DistanceToSquared(robberyLocation);
-                if (distance < 200f)
-                {
-                    robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988);
-
-                    arrivalOnScene = true;
-                    break;
-                }
-            }
-
-            while (!chaseStarted && arrivalOnScene)
-            {
-                await BaseScript.Delay(1000);
+                //Debug.WriteLine("A tick!");
                 float distance = Game.PlayerPed.Position.DistanceToSquared(robber.Position);
-                if (distance < 250f)
+                if (distance < 300f && random.Next(0, 100) < 20)
                 {
-                    robber.Task.ClearAll();
-                    robber.Task.FleeFrom(closest);
-                    if (random.Next(0, 100) < 20)
-                    {
-                        robber.Task.VehicleShootAtPed(closest);
-                        await BaseScript.Delay(random.Next(1000, 5000));
-                        robber.Task.ClearAll();
-                        robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988);
-                    }
-                }
-                else
-                {
-                    robber.Task.ClearAll();
-                    robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988);
+                    robber.Task.VehicleShootAtPed(Game.PlayerPed);
+                    await BaseScript.Delay(random.Next(1000, 5000));
+                    robber.Task.FleeFrom(Game.PlayerPed);
                 }
 
-                if(!air1Dispatched && (random.Next(0, 100) < 15))
+                if (!air1Dispatched)
                 {
                     air1Dispatched = true;
                     Notify("We called in Air-1 for you.");
 
                     Vehicle helicopter = await SpawnVehicle(VehicleHash.Polmav, new Vector3(robbedVehicle.Position.X, robbedVehicle.Position.Y, 200));
-                    helicopter.CurrentRPM = 5000;
-                    Ped pilot = await SpawnPed(PedHash.Prisguard01SMM, new Vector3(robbedVehicle.Position.X, robbedVehicle.Position.Y, 200));
+                    Ped pilot = await SpawnPed(PedHash.Pilot02SMM, new Vector3(robbedVehicle.Position.X, robbedVehicle.Position.Y, 200));
                     pilot.SetIntoVehicle(helicopter, VehicleSeat.Driver);
                     pilot.AlwaysKeepTask = true;
                     pilot.BlockPermanentEvents = true;
                     pilot.Task.ChaseWithHelicopter(robbedVehicle, new Vector3(35f, 35f, 35f));
 
-                    if(random.Next(0, 100) < 25)
+                    if (true)
                     {
+                        Notify("Air-1 will open fire at the suspect.");
                         swat = await SpawnPed(PedHash.Swat01SMY, new Vector3(robbedVehicle.Position.X, robbedVehicle.Position.Y, 200));
                         swat.SetIntoVehicle(helicopter, VehicleSeat.LeftRear);
                         swat.AlwaysKeepTask = true;
@@ -118,29 +94,61 @@ namespace SirGerbain_PDMRobbery
 
                 }
 
-                if (air1HasSwat)
+                if (air1HasSwat && air1Dispatched)
                 {
                     swat.Task.VehicleShootAtPed(robber);
                     await BaseScript.Delay(random.Next(1000, 5000));
                     swat.Task.ClearAll();
                 }
 
-                if (robbedVehicle.IsEngineOnFire)
+                if (air1Dispatched)
                 {
-                    robber.Task.ClearAll();
-                    robber.Task.FightAgainst(closest);
+                    await BaseScript.Delay(10000);
+                    Vector3 pedPosition = robber.Position;
+                    float pedHeading = robber.Heading;
+                    string dispatchPosition = "";
+                    string streetName = World.GetStreetName(pedPosition);
+                    if (pedHeading >= 45 && pedHeading < 135)
+                    {
+                        dispatchPosition += "West on " + streetName;
+                    }
+                    else if (pedHeading >= 135 && pedHeading < 225)
+                    {
+                        dispatchPosition += "South on " + streetName;
+                    }
+                    else if (pedHeading >= 225 && pedHeading < 315)
+                    {
+                        dispatchPosition += "East on " + streetName;
+                    }
+                    else
+                    {
+                        dispatchPosition += "North on " + streetName;
+                    }
 
-                    chaseStarted = true;
-                    break;
+                    DrawSubtitle(dispatchPosition, 3500);
+
                 }
-            }
 
+
+                tickTimer = 0f;
+            }
+        }
+
+        public async override void OnStart(Ped closest)
+        {
+            base.OnStart(closest);
+
+            robber.Task.FleeFrom(closest);
+            robber.AlwaysKeepTask = true;
+            robber.BlockPermanentEvents = true;
+
+            Tick += OnTick;
         }
 
         public async void setupCallout()
         {
             robbedVehicle = await SpawnVehicle(carList[random.Next(carList.Count)], robberyLocation);
-            robbedVehicle.Heading = 339.7f;
+            robbedVehicle.Heading = 300.91f;
             robbedVehicle.LockStatus = VehicleLockStatus.Unlocked;
             robbedVehicle.Mods.LicensePlate = "MTHRBTCH";
             robbedVehicle.AttachBlip();
@@ -152,7 +160,7 @@ namespace SirGerbain_PDMRobbery
             robber.Weapons.Give(WeaponHash.Pistol, 250, true, true);
 
             robber.SetIntoVehicle(robbedVehicle, VehicleSeat.Driver);
-            robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988);
+            //robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988);
 
             PedData data = new PedData();
             List<Item> items = new List<Item>();
