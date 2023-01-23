@@ -86,7 +86,7 @@ namespace SirGerbain_PDMRobbery
                     pilot.BlockPermanentEvents = true;
                     pilot.Task.ChaseWithHelicopter(robbedVehicle, new Vector3(35f, 35f, 35f));
 
-                    if (random.Next(0, 100) < 99)
+                    if (random.Next(0, 100) < 25)
                     {
                         Notify("Air-1 has swat on board.");
                         swat = await SpawnPed(PedHash.Swat01SMY, new Vector3(robbedVehicle.Position.X, robbedVehicle.Position.Y, 200));
@@ -166,7 +166,6 @@ namespace SirGerbain_PDMRobbery
             robber.Weapons.Give(WeaponHash.Pistol, 250, true, true);
 
             robber.SetIntoVehicle(robbedVehicle, VehicleSeat.Driver);
-            //robber.Task.CruiseWithVehicle(robbedVehicle, 150f, 786988);
 
             PedData data = new PedData();
             List<Item> items = new List<Item>();
